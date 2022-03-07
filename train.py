@@ -3,7 +3,7 @@
 # Date: 5/03/2022
 
 # Example command
-# python train.py ./flowers --learning_rate 0.001 --hidden_units 5000 --epochs 15 --gpu --save_dir ./saves
+# python train.py ./flowers --learning_rate 0.001 --hidden_units 5000 --epochs 15 --gpu --save_dir ./saves --arch Densenet
 
 # Python Imports
 import numpy as np
@@ -13,6 +13,7 @@ import seaborn as sb
 import cv2
 import json
 from collections import OrderedDict
+from sys import exit
 
 import torch
 from torch import nn, optim
@@ -74,20 +75,36 @@ def main():
         cat_to_name = json.load(f)
     
     # Download network
-    model = eval("models." + args['arch'] + "(pretrained=True)")
-    print(model)
     
-    # Freeze pretrained model parameters to avoid backpropogating through them
-    for parameter in model.parameters():
-        parameter.requires_grad = False
+    if args["arch"] == 'VGG':
+        model = models.vgg16(pretrained=True)
 
-
-    # Build custom classifier
-    classifier = nn.Sequential(OrderedDict([('fc1', nn.Linear(25088, args["hidden_units"])),
+        for param in model.parameters():
+            param.requires_grad = False
+            classifier = nn.Sequential(OrderedDict([('fc1', nn.Linear(25088, args["hidden_units"])),
                                             ('relu', nn.ReLU()),
                                             ('drop', nn.Dropout(p=0.5)),
                                             ('fc2', nn.Linear(args["hidden_units"], 102)),
                                             ('output', nn.LogSoftmax(dim=1))]))
+
+    elif args["arch"] == 'Densenet':
+        model = models.densenet121(pretrained=True)
+        # Only train the classifier parameters, feature parameters are frozen
+        for param in model.parameters():
+            param.requires_grad = False
+            classifier = nn.Sequential(OrderedDict([('fc1', nn.Linear(1024, args["hidden_units"])),
+                                                    ('relu', nn.ReLU()),
+                                                    ('drop', nn.Dropout(p=0.5)),
+                                                    ('fc2', nn.Linear(args["hidden_units"], 102)),
+                                                    ('output', nn.LogSoftmax(dim=1))]))
+    else:
+        # Arch not supported!
+        print("Arch: %s not supported! Try VGG or Densenet instead :)" % (args["arch"]))
+        exit(1)
+    
+    # Freeze pretrained model parameters to avoid backpropogating through them
+    for parameter in model.parameters():
+        parameter.requires_grad = False
 
     model.classifier = classifier
 
