@@ -6,13 +6,22 @@ from torch import nn, optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms, models
 from collections import OrderedDict
+from sys import exit
 
 # File containing all of the functions used in the predict program
 def load_checkpoint(filepath):
 
     checkpoint = torch.load(filepath)
-
-    model = eval("models." + checkpoint['arch'] + "(pretrained=True)")
+    
+    if checkpoint["arch"] == 'VGG':
+        model = models.vgg16(pretrained=True)
+        
+    elif checkpoint["arch"] == 'Densenet':
+        model = models.densenet121(pretrained=True)
+        
+    else:
+        print("Unsupported arch used in checkpoint")
+        exit(1)
 
     for param in model.parameters():
         param.requires_grad = False
@@ -73,6 +82,7 @@ def predict(image_path, model, topk, gpu):
         model.to('cuda')
         image = torch.from_numpy(image).type(torch.cuda.FloatTensor)
     else:
+        model.to('cpu')
         image = torch.from_numpy(image).type(torch.FloatTensor)
 
     # Returns a new tensor with a dimension of size one inserted at the specified position.
