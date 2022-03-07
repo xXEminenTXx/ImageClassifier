@@ -25,7 +25,7 @@ def train_fetch_input_args():
             "data_dir" : str(argv[1]),
             "gpu" : bool(0),
             "save_dir" : "./",
-            "arch" : "vgg16",
+            "arch" : "VGG",
             "learning_rate" : float(0.001),
             "hidden_units" : int(5000),
             "epochs" : int(15)
